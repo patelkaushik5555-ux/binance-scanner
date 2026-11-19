@@ -1,27 +1,31 @@
-import urllib.request
+ import urllib.request
 import urllib.parse
 import json
 import time
 import os
+import sys
 import threading
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from datetime import datetime
+
+sys.stdout.reconfigure(line_buffering=True)
 
 BASE = "https://fapi.binance.com"
 TOKEN = "9061084679:AAFBWmomCneTRndwCcUfViukqYAXQZmArGE"
 CHAT_ID = "1729860544"
 
-# સર્વર ચાલુ રાખવા માટેનું ડમી વેબ પેજ
 class KeepAliveHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
         self.end_headers()
         self.wfile.write(b"Binance Scanner is Running 24/7!")
+    def do_HEAD(self):
+        self.send_response(200)
+        self.end_headers()
 
 def start_web_server():
     port = int(os.environ.get("PORT", 8080))
-    server = HTTPServer(("0.0.0.0", port), KeepAliveHandler)
-    server.serve_forever()
+    HTTPServer(("0.0.0.0", port), KeepAliveHandler).serve_forever()
 
 def get_json(url, params=None):
     if params:
@@ -36,6 +40,7 @@ def send_tg(msg):
     req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"})
     try:
         urllib.request.urlopen(req, timeout=10)
+        print("Telegram message sent!")
     except Exception as e:
         print("TG Error:", e)
 
@@ -75,6 +80,7 @@ def run():
 
         longs = [x["symbol"] for x in tickers if x["symbol"] in valid and float(x["priceChangePercent"]) >= 12]
         shorts = [x["symbol"] for x in tickers if x["symbol"] in valid and float(x["priceChangePercent"]) <= -12]
+        print(f"Watchlist -> Longs (+12%): {len(longs)} | Shorts (-12%): {len(shorts)}")
 
         fl, fs = [], []
         for s in longs:
@@ -96,14 +102,15 @@ def run():
             print(msg.replace("<b>", "").replace("</b>", ""))
             send_tg(msg)
         else:
-            print("No new signal.")
+            print("No new crossover signal.")
     except Exception as e:
         print("ERROR:", e)
 
 if _name_ == "_main_":
-    # બેકગ્રાઉન્ડમાં વેબ સર્વર ચાલુ કરવું
     threading.Thread(target=start_web_server, daemon=True).start()
-    print("Scanner Started on Cloud Server...")
+    print("Scanner Started on Cloud Server!")
+    send_tg("✅ <b>Binance Scanner Started!</b>\nServer is Live 24/7.")
+    run()
     while True:
         w = 180 - (time.time() % 180) + 2
         time.sleep(w)
