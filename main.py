@@ -100,7 +100,7 @@ def run():
     except Exception as e:
         print("ERROR:", e)
 
-if __name__ == "__main__":
+if _name_ == "_main_":
     # બેકગ્રાઉન્ડમાં વેબ સર્વર ચાલુ કરવું
     threading.Thread(target=start_web_server, daemon=True).start()
     print("Scanner Started on Cloud Server...")
